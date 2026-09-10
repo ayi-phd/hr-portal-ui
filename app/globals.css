@@ -1,0 +1,101 @@
+/* ============================================================
+   Fractal HR — design tokens + base styles
+   Values lifted from the design canvas (fractal-hr-portal).
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --bg: #fbf8f3;
+  --surface: #ffffff;
+  --surface-sunken: #f6efe6;
+
+  /* Lines */
+  --border: #ebe4d8;
+  --border-strong: #e2d8c8;
+  --border-dashed: #d8cdb8;
+
+  /* Text */
+  --ink: #2b2a28;
+  --ink-soft: #6f6a63;
+  --ink-muted: #77716a;
+  --ink-label: #514c45;
+
+  /* Accent (warm coral) */
+  --accent: #e36f4e;
+  --accent-strong: #b84d31;
+  --accent-hover: #a84a32;
+  --accent-tint: #fbece6;
+  --accent-tint-border: #f1d9cf;
+
+  /* Status */
+  --ok-fg: #2f7d53;
+  --ok-bg: #eaf6ef;
+  --ok-border: #bfe3ce;
+  --pending-fg: #8a6d2f;
+  --pending-bg: #fbf3e2;
+  --pending-border: #e8dac0;
+
+  /* File-type badges */
+  --badge-pdf: #c0392b;
+  --badge-docx: #2b579a;
+  --badge-md: #5a6570;
+
+  /* Shape */
+  --radius-card: 16px;
+  --radius-control: 10px;
+  --radius-pill: 999px;
+
+  --shadow-input: 0 1px 2px rgba(43, 42, 40, 0.05);
+
+  --nav-height: 64px;
+  --content-width: 1200px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+a {
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  font: inherit;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

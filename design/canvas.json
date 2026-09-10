@@ -1,0 +1,12 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1440, "h": 1160, "title": "Prototype — Home · Policies Assistant · Documents", "is_interactive": true },
+    { "file": "AssistantEmpty.dc.html", "x": 1560, "y": 0, "w": 1440, "h": 1024, "title": "Policies Assistant — first run" },
+    { "file": "AssistantChat.dc.html", "x": 3120, "y": 0, "w": 1440, "h": 1024, "title": "Policies Assistant — in conversation" },
+    { "file": "DocumentsUpload.dc.html", "x": 4680, "y": 0, "w": 1440, "h": 1024, "title": "Documents Upload — with files added" }
+  ],
+  "annotations": [
+    { "id": "note-prototype", "x": 0, "y": -116, "w": 560, "text": "Clickable prototype. Opens on the login page (auth disabled — Submit signs you in); then Home, Policies Assistant and Documents tabs switch views. Send streams a canned cited answer; the Documents page takes drag-and-drop uploads (.pdf, .docx, .md). Log Out returns to the login page." }
+  ],
+  "launch": { "view": "focused", "file": "Main.dc.html" }
+}
