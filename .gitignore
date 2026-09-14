@@ -21,12 +21,12 @@ next-env.d.ts
 *.tsbuildinfo
 .eslintcache
 
-# env files (commit .env.example instead)
+# env files — personal overrides / secrets only.
+# .env.example, .env.development, .env.production are committed on purpose:
+# they hold no secrets, only the public HR Policy Assistant API base URL.
 .env
 .env.local
 .env.*.local
-.env.development
-.env.production
 
 # logs
 *.log

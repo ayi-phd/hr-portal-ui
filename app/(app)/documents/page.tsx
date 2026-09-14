@@ -37,8 +37,13 @@ const BADGE_CLASS: Record<string, string> = {
 };
 
 /**
- * Documents Upload — HR admins drag policy documents (.pdf, .docx, .md) here.
- * Files are validated client-side, then POSTed to /api/documents on "Upload".
+ * Documents Upload — UI PLACEHOLDER ONLY, no backend yet.
+ *
+ * Drag-and-drop, file listing, and extension validation are real (all
+ * client-side, no server/runtime involved). "Upload" simulates success
+ * locally — there is no API call. When a real upload endpoint exists it will
+ * be a FastAPI route (see contracts/), not a Next.js API route: this app is
+ * statically exported, so it can't host server-side handlers.
  */
 export default function DocumentsPage() {
   const [docs, setDocs] = useState<DocEntry[]>([]);
@@ -64,7 +69,7 @@ export default function DocumentsPage() {
   const remove = (id: string) =>
     setDocs((prev) => prev.filter((d) => d.id !== id));
 
-  const upload = useCallback(async () => {
+  const upload = useCallback(() => {
     const ready = docs.filter((d) => d.status === "ready");
     if (ready.length === 0) return;
 
@@ -73,20 +78,14 @@ export default function DocumentsPage() {
       prev.map((d) => (readyIds.has(d.id) ? { ...d, status: "uploading" } : d)),
     );
 
-    const form = new FormData();
-    ready.forEach((d) => form.append("files", d.file, d.file.name));
-
-    try {
-      const res = await fetch("/api/documents", { method: "POST", body: form });
-      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    // No backend yet (placeholder feature) — simulate the round trip locally
+    // instead of calling an API. Replace with a real upload call once a
+    // FastAPI endpoint exists.
+    window.setTimeout(() => {
       setDocs((prev) =>
         prev.map((d) => (readyIds.has(d.id) ? { ...d, status: "uploaded" } : d)),
       );
-    } catch {
-      setDocs((prev) =>
-        prev.map((d) => (readyIds.has(d.id) ? { ...d, status: "ready" } : d)),
-      );
-    }
+    }, 600);
   }, [docs]);
 
   const readyCount = docs.filter((d) => d.status === "ready").length;

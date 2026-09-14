@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { askPolicyQuestion, PolicyAssistantError } from "@/lib/api/hrPolicyAssistant";
 import { DocIcon, SendIcon, SparkleIcon } from "@/components/Icon";
-import { EXAMPLE_QUESTIONS } from "@/lib/policyAnswers";
+import { EXAMPLE_QUESTIONS } from "@/lib/exampleQuestions";
 import styles from "./policies-assistant.module.css";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   text: string;
-  source?: string;
-  done: boolean;
+  sources?: string[];
+  /** True while the request for this (assistant) message is in flight. */
+  pending: boolean;
 }
 
 let counter = 0;
@@ -19,7 +21,7 @@ const nextId = () => `m${++counter}`;
 export default function PoliciesAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
-  const [streaming, setStreaming] = useState(false);
+  const [asking, setAsking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,65 +31,39 @@ export default function PoliciesAssistantPage() {
   const send = useCallback(
     async (raw: string) => {
       const question = raw.trim();
-      if (!question || streaming) return;
+      if (!question || asking) return;
 
       const assistantId = nextId();
       setMessages((prev) => [
         ...prev,
-        { id: nextId(), role: "user", text: question, done: true },
-        { id: assistantId, role: "assistant", text: "", done: false },
+        { id: nextId(), role: "user", text: question, pending: false },
+        { id: assistantId, role: "assistant", text: "", pending: true },
       ]);
       setDraft("");
-      setStreaming(true);
+      setAsking(true);
 
       try {
-        const res = await fetch("/api/policies-assistant", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
-        });
-        if (!res.ok || !res.body) {
-          throw new Error(`Request failed: ${res.status}`);
-        }
-
-        const source = res.headers.get("X-Policy-Source") ?? undefined;
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          const piece = decoder.decode(value, { stream: true });
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, text: m.text + piece } : m,
-            ),
-          );
-        }
-
+        const { answer, sources } = await askPolicyQuestion(question);
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantId ? { ...m, source, done: true } : m,
+            m.id === assistantId ? { ...m, text: answer, sources, pending: false } : m,
           ),
         );
-      } catch {
+      } catch (err) {
+        const message =
+          err instanceof PolicyAssistantError
+            ? err.message
+            : "Something went wrong reaching the assistant. Please try again.";
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantId
-              ? {
-                  ...m,
-                  text:
-                    "Something went wrong reaching the assistant. Please try again.",
-                  done: true,
-                }
-              : m,
+            m.id === assistantId ? { ...m, text: message, pending: false } : m,
           ),
         );
       } finally {
-        setStreaming(false);
+        setAsking(false);
       }
     },
-    [streaming],
+    [asking],
   );
 
   const hasMessages = messages.length > 0;
@@ -114,20 +90,27 @@ export default function PoliciesAssistantPage() {
                   <span className={styles.assistantAvatar}>
                     <SparkleIcon size={16} />
                   </span>
-                  <div className={styles.assistantBody}>
-                    <div className={styles.assistantBubble}>
-                      {m.text}
-                      {!m.done && <span className={styles.caret} />}
+                  {m.pending ? (
+                    <div className={styles.thinking} aria-label="Assistant is thinking">
+                      <span className={styles.dot} />
+                      <span className={styles.dot} />
+                      <span className={styles.dot} />
                     </div>
-                    {m.done && m.source && (
-                      <div className={styles.sourceRow}>
-                        <span className={styles.sourcePill}>
-                          <DocIcon size={12} />
-                          {m.source}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <div className={styles.assistantBody}>
+                      <div className={styles.assistantBubble}>{m.text}</div>
+                      {m.sources && m.sources.length > 0 && (
+                        <div className={styles.sourceRow}>
+                          {m.sources.map((source) => (
+                            <span key={source} className={styles.sourcePill}>
+                              <DocIcon size={12} />
+                              {source}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ),
             )}
@@ -178,7 +161,7 @@ export default function PoliciesAssistantPage() {
               type="button"
               className={styles.sendButton}
               onClick={() => send(draft)}
-              disabled={streaming || !draft.trim()}
+              disabled={asking || !draft.trim()}
             >
               Send
               <SendIcon size={15} />

@@ -5,16 +5,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev              # dev server at http://localhost:3000
-npm run build            # production build (also runs lint + type-check)
-npm run start            # serve the production build
+npm run dev              # dev server at http://localhost:3000/hr-portal
+npm run build            # static export to out/ (also runs lint + type-check)
+npm run start            # preview the exported out/ via `npx serve` (NOT `next start` — see below)
 npm run lint             # next lint (eslint-config-next / core-web-vitals)
 npx tsc --noEmit         # type-check only
+npm run gen:api          # regenerate lib/api/hr-policy-assistant.types.ts from contracts/
 ```
 
 There is no test suite in this repo yet — no test runner is configured.
 
 ## Architecture
+
+**Static export, no Next.js server.** `next.config.mjs` sets `output: "export"`
+and `basePath: "/hr-portal"`: `npm run build` produces plain files in `out/`
+(HTML/CSS/JS) deployed to S3 + CloudFront at `https://fractalai.cloud/hr-portal/*`
+alongside other apps on the same distribution/bucket — there is no Node
+runtime in production. This is why the app has **no Next.js API routes**: they
+cannot exist in a static export. `next start` does not work with this config
+(`npm run start` shells out to `npx serve` on `out/` instead — a local-preview
+convenience only, not a project dependency, since nothing in the actual
+deployment runs it) — this only matters for local verification, not for how
+the app is actually hosted. Any future server-side
+need (the Policies Assistant, Documents upload, auth) is met by calling an
+external backend directly from the browser, never by adding a route back into
+`app/api/`.
 
 Next.js 14 **App Router** + React 18 + TypeScript. Styling is **CSS Modules**
 (`*.module.css` next to each component/page) layered over a design-token system:
@@ -41,24 +56,36 @@ To add a signed-in page, put it under `app/(app)/`. To change route
 protection, replace the client `RequireAuth` approach with real auth +
 `middleware.ts`.
 
-### Policies Assistant (streaming)
+### Policies Assistant (real backend, called directly from the browser)
 
-`lib/policyAnswers.ts` maps a question to a canned answer + citation by keyword;
-it is shared by the API route (never import UI into it, keep it framework-free).
-`app/api/policies-assistant/route.ts` POSTs → streams the answer text as
-`text/plain` chunks via a `ReadableStream`, with the citation in the
-`X-Policy-Source` response header. `app/(app)/policies-assistant/page.tsx`
-reads `response.body.getReader()` and appends chunks to the last message.
-Making it real = swap the stream body for a model call and replace `answerFor`
-with retrieval over the policy corpus.
+`app/(app)/policies-assistant/page.tsx` calls `askPolicyQuestion()` in
+`lib/api/hrPolicyAssistant.ts`, which POSTs straight to the FastAPI backend's
+`POST /ask` (base URL from `NEXT_PUBLIC_HR_ASSISTANT_API_URL`, see below) —
+**there is no Next.js proxy route for this**, by design: no auth in v0, and
+CORS on the backend is what makes the direct call possible (see
+`contracts/openapi-hr-policies-assistant.json`, `servers`). The backend is
+single-shot/stateless (no conversation history) and does not stream — the UI
+shows a "thinking" (pulsing-dots) state, then renders the full answer plus a
+pill per `sources[]` entry once the response resolves. Request/response types
+(`AskRequest`, `PolicyAnswer`) come from the generated
+`lib/api/hr-policy-assistant.types.ts` — regenerate it (`npm run gen:api`)
+after any contract change rather than hand-editing it. `lib/exampleQuestions.ts`
+only holds the empty-state starter prompts now; it has no answer logic.
 
-### Documents upload
+Env vars: `.env.development` / `.env.production` pin the API base URL per
+environment (both committed — no secrets, just a public URL); override locally
+with a gitignored `.env.local`.
 
-`app/(app)/documents/page.tsx` keeps `File` objects in component state, filters
-by extension (`.pdf` / `.docx` / `.md`) client-side, and on "Upload" POSTs a
-`FormData` (field name `files`) to `app/api/documents/route.ts`, which
-re-validates and echoes metadata. Nothing is persisted — add storage +
-per-document records + indexing there.
+### Documents upload — UI placeholder, no backend
+
+`app/(app)/documents/page.tsx` is intentionally placeholder-only: drag-and-drop,
+the file list, and extension filtering (`.pdf` / `.docx` / `.md`) are real and
+fully client-side, but "Upload" just flips each file's status to "uploaded"
+locally (a `setTimeout`, no network call) — there is no API route for this
+(there was one; it was removed because a static export can't host it — see
+Architecture above) and nothing is persisted. When a real endpoint exists it
+will be called the same way the Policies Assistant calls its backend (direct
+`fetch` to a FastAPI URL), not a Next.js route.
 
 ## `design/` is not part of the app
 
@@ -70,18 +97,23 @@ seeded `.html`.
 
 ## `contracts/` — backend API spec
 
-`contracts/` holds the vendored OpenAPI contract for the backend the frontend
-talks to (currently empty — `.gitkeep` placeholder). Not part of the Next
-build. When populated it is the input for a typed API client: generate types
-from it rather than hand-writing request/response shapes, and keep the vendored
-copy in sync with the backend's canonical spec (see `contracts/README.md` once
-added).
+`contracts/openapi-hr-policies-assistant.json` is the vendored OpenAPI contract
+for the FastAPI backend (`GET /health`, `POST /ask`; `servers` lists prod
+`https://api.fractalai.cloud` and local dev `http://localhost:8000` — no
+"test"/staging URL yet). Not part of the Next build. It's the input for
+`npm run gen:api`; regenerate types after any contract change instead of
+hand-editing `lib/api/hr-policy-assistant.types.ts`. This is a **vendored
+copy** — the backend repo owns the canonical spec, so re-sync this file when
+it changes there (no automated sync exists yet).
 
 ## Known placeholders (v0)
 
-Auth, the assistant's retrieval/model call, document storage, all dashboard
-figures (sample constants at the top of `app/(app)/page.tsx`), and role-based
-tab sets — the HR-admin "Documents" tab is currently shown to every user.
+Auth, the entire document-upload backend (UI only, no API at all — see above),
+all dashboard figures (sample constants at the top of `app/(app)/page.tsx`),
+and role-based tab sets — the HR-admin "Documents" tab is currently shown to
+every user. The Policies Assistant calls a real backend, but that backend is
+itself a placeholder (single canned-ish answer path) and has no conversation
+memory (self-contained questions only, by design for v0).
 
 ## Git Flow
 

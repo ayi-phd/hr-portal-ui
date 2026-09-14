@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "npx serve@latest out",
+    "lint": "next lint",
+    "gen:api": "openapi-typescript contracts/openapi-hr-policies-assistant.json -o lib/api/hr-policy-assistant.types.ts"
   },
   "dependencies": {
     "next": "14.2.35",
@@ -19,6 +20,7 @@
     "@types/react-dom": "18.3.0",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.35",
+    "openapi-typescript": "^7.13.0",
     "typescript": "5.5.4"
   }
 }
