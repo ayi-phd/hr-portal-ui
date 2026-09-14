@@ -4,6 +4,16 @@
     "title": "HR Policy Assistant",
     "version": "0.1.0"
   },
+  "servers": [
+    {
+      "url": "https://api.fractalai.cloud",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development"
+    }
+  ],
   "paths": {
     "/health": {
       "get": {
