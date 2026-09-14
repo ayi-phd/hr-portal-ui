@@ -32,7 +32,8 @@ served at `https://fractalai.cloud/hr-portal/*`. Consequences:
   Policies Assistant today, Documents upload eventually) must be a separate
   backend called directly from the browser.
 - `next start` doesn't work with this config; `npm run start` previews `out/`
-  with `serve` instead — for `basePath` reasons a plain `serve out` won't
+  via `npx serve` instead (not a project dependency — just a local-preview
+  convenience) — for `basePath` reasons a plain `serve out` won't
   resolve `/hr-portal/...` locally the way the real deployment will (files sit
   at `out/*.html`, not `out/hr-portal/*.html`); this is a local-preview quirk,
   not a build problem.

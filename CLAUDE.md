@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev              # dev server at http://localhost:3000/hr-portal
 npm run build            # static export to out/ (also runs lint + type-check)
-npm run start            # preview the exported out/ with `serve` (NOT `next start` — see below)
+npm run start            # preview the exported out/ via `npx serve` (NOT `next start` — see below)
 npm run lint             # next lint (eslint-config-next / core-web-vitals)
 npx tsc --noEmit         # type-check only
 npm run gen:api          # regenerate lib/api/hr-policy-assistant.types.ts from contracts/
@@ -23,8 +23,10 @@ and `basePath: "/hr-portal"`: `npm run build` produces plain files in `out/`
 alongside other apps on the same distribution/bucket — there is no Node
 runtime in production. This is why the app has **no Next.js API routes**: they
 cannot exist in a static export. `next start` does not work with this config
-(`npm run start` uses `serve` on `out/` instead) — this only matters for local
-verification, not for how the app is actually hosted. Any future server-side
+(`npm run start` shells out to `npx serve` on `out/` instead — a local-preview
+convenience only, not a project dependency, since nothing in the actual
+deployment runs it) — this only matters for local verification, not for how
+the app is actually hosted. Any future server-side
 need (the Policies Assistant, Documents upload, auth) is met by calling an
 external backend directly from the browser, never by adding a route back into
 `app/api/`.
